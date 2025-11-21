@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "919814262445",
+    "project_id": "hbooks-b6c94",
+    "storage_bucket": "hbooks-b6c94.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:919814262445:android:64ab4da2fd9445e9190024",
+        "android_client_info": {
+          "package_name": "com.example.hbooks"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQx6b6wSdppYgT_HJYWA3LYJHxbU60P2Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

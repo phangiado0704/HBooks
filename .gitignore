@@ -1,0 +1,17 @@
+# IDE files
+.idea/
+*.iml
+local.properties
+
+# Gradle files
+.gradle/
+build/
+gradle-wrapper.properties
+
+# Keystore files
+*.jks
+*.keystore
+
+# Misc
+.DS_Store
+capture.props
