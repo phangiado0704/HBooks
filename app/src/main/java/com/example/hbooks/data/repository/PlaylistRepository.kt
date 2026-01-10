@@ -84,14 +84,8 @@ object PlaylistRepository {
         }
     }
 
-    private fun defaultPlaylists(): List<Playlist> = listOf(
-        Playlist(id = "favorites", name = "Favorites"),
-        Playlist(id = "morning", name = "Morning commute"),
-        Playlist(id = "focus", name = "Focus session")
-    )
-
     private fun loadPlaylistsForUser(userId: String): List<Playlist> =
-        playlistsByUser.getOrPut(userId) { defaultPlaylists() }
+        playlistsByUser.getOrPut(userId) { emptyList() }
 
     private fun updatePlaylists(transform: (List<Playlist>) -> List<Playlist>) {
         val updated = transform(loadPlaylistsForUser(activeUserId))

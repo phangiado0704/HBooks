@@ -92,12 +92,12 @@ fun LibraryScreen(onBackClick: () -> Unit, onBookClick: (String) -> Unit) {
 
             if (!uiState.isLoading && uiState.errorMessage == null) {
                 item {
-                    SectionTitle(title = "Recently Played", onActionClick = {})
+                    SectionTitle(title = "Recently Played")
                     RecentlyPlayedSection(books = recentlyPlayedBooks, onBookClick = onBookClick)
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 item {
-                    SectionTitle(title = "Playlists", onActionClick = {})
+                    SectionTitle(title = "Playlists")
                     PlaylistsSection(
                         playlists = playlists,
                         onPlaylistClick = { playlist -> selectedPlaylist = playlist }

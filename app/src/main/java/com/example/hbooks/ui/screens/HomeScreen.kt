@@ -53,7 +53,7 @@ fun HomeScreen(onBookClick: (String) -> Unit, modifier: Modifier = Modifier) {
         if (!uiState.isLoading && uiState.errorMessage == null) {
             if (uiState.categories.isNotEmpty()) {
                 item {
-                    SectionTitle(title = "Category", onActionClick = { /* Navigate to categories */ })
+                    SectionTitle(title = "Category")
                     CategorySection(
                         categories = uiState.categories,
                         selectedCategory = uiState.selectedCategory,
@@ -74,12 +74,12 @@ fun HomeScreen(onBookClick: (String) -> Unit, modifier: Modifier = Modifier) {
                 }
             } else {
                 item {
-                    SectionTitle(title = "New Releases Book", onActionClick = { /*TODO*/ })
+                    SectionTitle(title = "New Releases Book")
                     NewReleasesSection(books = displayedBooks, onBookClick = onBookClick)
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 item {
-                    SectionTitle(title = "Featured Books", onActionClick = { /*TODO*/ })
+                    SectionTitle(title = "Featured Books")
                 }
                 item {
                     FeaturedBooksSection(

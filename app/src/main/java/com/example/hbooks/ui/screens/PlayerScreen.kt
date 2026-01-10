@@ -110,7 +110,7 @@ fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(75.dp))
 
             book?.let { currentBook ->
                 val isBookSaved = playlists.any { playlist -> currentBook.id in playlist.bookIds }
@@ -120,15 +120,15 @@ fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
                     modifier = Modifier.offset(y = (-20).dp)
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 BookDetails(book = currentBook)
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 SeekBarSection(uiState = uiState, onSeek = viewModel::onSeek)
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 PlayerControls(
                     isPlaying = uiState.isPlaying,
@@ -139,7 +139,7 @@ fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
                     onSkipNext = viewModel::onSkipNext
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 SecondaryControls(
                     sleepTimerRemainingMs = uiState.sleepTimerRemainingMs,
@@ -150,10 +150,10 @@ fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
                     onRepeatToggle = viewModel::cycleRepeatAndShuffleMode,
                     onSaveClick = { showSaveDialog = true }
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         HeaderTopBar(onBackClick = onBackClick)
