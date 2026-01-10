@@ -3,11 +3,13 @@ package com.example.hbooks.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hbooks.data.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class ProfileUiState(
     val displayName: String = "Listener",
@@ -19,8 +21,9 @@ data class ProfileUiState(
     val successMessage: String? = null
 )
 
-class ProfileViewModel(
-    private val authRepository: AuthRepository = AuthRepository()
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -98,9 +101,5 @@ class ProfileViewModel(
     fun logout(onComplete: () -> Unit) {
         authRepository.logout()
         onComplete()
-    }
-
-    fun dismissMessages() {
-        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
 }

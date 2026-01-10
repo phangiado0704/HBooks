@@ -16,14 +16,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,8 +43,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.hbooks.R
+import com.example.hbooks.data.repository.ThemeMode
+import com.example.hbooks.data.repository.ThemeRepository
 import com.example.hbooks.ui.theme.HBooksPrimary
 import com.example.hbooks.ui.theme.HBooksSoftPink
 import com.example.hbooks.ui.theme.HBooksTextGray
@@ -53,15 +58,16 @@ import com.example.hbooks.ui.viewmodels.ProfileViewModel
 fun ProfileScreen(
     onBackClick: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: ProfileViewModel = viewModel()
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showChangePassword by remember { mutableStateOf(false) }
+    val themeMode by ThemeRepository.themeMode.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(bottom = 16.dp)
     ) {
         ProfileHeader(
@@ -76,6 +82,13 @@ fun ProfileScreen(
             onSaveName = { viewModel.saveDisplayName() },
             onChangePassword = { showChangePassword = true }
         )
+        
+        // Dark Mode Toggle
+        DarkModeToggle(
+            isDarkMode = themeMode == ThemeMode.DARK,
+            onToggle = { ThemeRepository.toggleDarkMode() }
+        )
+        
         LogoutButton(onLogout = { viewModel.logout(onLogout) })
     }
 
@@ -112,7 +125,7 @@ private fun ProfileHeader(
                 .padding(start = 8.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.ArrowBack,
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 tint = Color.White
             )
@@ -275,10 +288,41 @@ private fun ActionRow(label: String, onClick: () -> Unit) {
             fontWeight = FontWeight.SemiBold
         )
         Icon(
-            imageVector = Icons.Default.ArrowForwardIos,
+            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
             contentDescription = label,
             tint = Color(0xFF707070),
             modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+@Composable
+private fun DarkModeToggle(
+    isDarkMode: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Dark Mode",
+            color = HBooksPrimary,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Switch(
+            checked = isDarkMode,
+            onCheckedChange = { onToggle() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = HBooksPrimary,
+                uncheckedThumbColor = Color.White,
+                uncheckedTrackColor = Color.LightGray
+            )
         )
     }
 }

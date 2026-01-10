@@ -24,7 +24,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,7 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.hbooks.R
 import com.example.hbooks.ui.theme.HBooksFieldBorder
 import com.example.hbooks.ui.theme.HBooksPink
@@ -63,7 +63,7 @@ fun LoginScreen(
     onSignIn: () -> Unit,
     onRegisterClick: () -> Unit,
     onForgotPassword: () -> Unit,
-    viewModel: AuthViewModel = viewModel()
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -123,7 +123,7 @@ fun RegisterScreen(
     modifier: Modifier = Modifier,
     onRegister: () -> Unit,
     onSignInClick: () -> Unit,
-    viewModel: AuthViewModel = viewModel()
+    viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -307,7 +307,7 @@ fun AuthTextField(
                     }
                     innerTextField()
                 }
-                Divider(color = HBooksFieldBorder, thickness = 1.dp)
+                HorizontalDivider(color = HBooksFieldBorder, thickness = 1.dp)
             }
         }
     )

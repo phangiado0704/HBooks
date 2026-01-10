@@ -5,16 +5,20 @@ import androidx.lifecycle.viewModelScope
 import com.example.hbooks.data.repository.BookRepository
 import com.example.hbooks.data.repository.PlaylistRepository
 import com.example.hbooks.data.repository.RecentlyPlayedRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LibraryViewModel(
-    private val bookRepository: BookRepository = BookRepository(),
-    private val playlistRepository: PlaylistRepository = PlaylistRepository,
-    private val recentlyPlayedRepository: RecentlyPlayedRepository = RecentlyPlayedRepository
+@HiltViewModel
+class LibraryViewModel @Inject constructor(
+    private val bookRepository: BookRepository
 ) : ViewModel() {
+
+    private val playlistRepository = PlaylistRepository
+    private val recentlyPlayedRepository = RecentlyPlayedRepository
 
     private val _uiState = MutableStateFlow(BookListUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()

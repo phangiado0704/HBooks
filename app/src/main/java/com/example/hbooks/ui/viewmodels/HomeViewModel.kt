@@ -5,20 +5,32 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hbooks.data.models.Book
 import com.example.hbooks.data.repository.BookRepository
+import com.example.hbooks.data.repository.PlaybackPosition
+import com.example.hbooks.data.repository.PlaybackPositionRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class HomeViewModel(
-    private val bookRepository: BookRepository = BookRepository()
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val bookRepository: BookRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BookListUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
 
+    val playbackPositions: StateFlow<Map<String, PlaybackPosition>> = PlaybackPositionRepository.positions
+
     init {
         refreshBooks()
+        // Load positions from Firestore
+        viewModelScope.launch {
+            PlaybackPositionRepository.loadFromFirestore()
+        }
     }
 
     fun refreshBooks() {

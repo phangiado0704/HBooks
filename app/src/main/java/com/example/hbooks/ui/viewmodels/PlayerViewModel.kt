@@ -13,12 +13,15 @@ import androidx.media3.session.SessionToken
 import com.example.hbooks.data.models.Book
 import com.example.hbooks.data.models.Playlist
 import com.example.hbooks.data.repository.BookRepository
+import com.example.hbooks.data.repository.PlaybackPositionRepository
 import com.example.hbooks.data.repository.PlaylistRepository
 import com.example.hbooks.data.repository.RecentlyPlayedRepository
 import com.example.hbooks.services.PlaybackService
+import com.example.hbooks.services.PlaybackStateManager
 import com.example.hbooks.util.FirebaseStorageFetcher
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class PlayerUiState(
     val isPlaying: Boolean = false,
@@ -35,15 +39,20 @@ data class PlayerUiState(
     val mediaItem: MediaItem? = null,
     val sleepTimerRemainingMs: Long? = null,
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
-    val isShuffleEnabled: Boolean = false
+    val isShuffleEnabled: Boolean = false,
+    val playbackSpeed: Float = 1.0f
 )
 
-class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class PlayerViewModel @Inject constructor(
+    application: Application,
+    private val bookRepository: BookRepository,
+    private val storageFetcher: FirebaseStorageFetcher
+) : AndroidViewModel(application) {
 
-    private val bookRepository = BookRepository()
-    private val storageFetcher = FirebaseStorageFetcher()
     private val playlistRepository = PlaylistRepository
     private val recentlyPlayedRepository = RecentlyPlayedRepository
+    private val playbackPositionRepository = PlaybackPositionRepository
 
     private val _player = MutableStateFlow<Player?>(null)
     val player = _player.asStateFlow()
@@ -99,12 +108,27 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                         _uiState.update { it.copy(isShuffleEnabled = shuffleModeEnabled) }
                     }
+
+                    override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
+                        _uiState.update { it.copy(playbackSpeed = playbackParameters.speed) }
+                    }
                 })
 
+                // Update position every second and auto-save every 10 seconds
                 viewModelScope.launch {
+                    var autoSaveCounter = 0
                     while (true) {
                         if (controller.isPlaying) {
-                            _uiState.update { it.copy(currentPosition = controller.currentPosition) }
+                            val position = controller.currentPosition
+                            _uiState.update { it.copy(currentPosition = position) }
+                            // Sync with PlaybackStateManager for MiniPlayer
+                            PlaybackStateManager.updatePosition(position)
+                            autoSaveCounter++
+                            // Auto-save position every 10 seconds
+                            if (autoSaveCounter >= 10) {
+                                autoSaveCounter = 0
+                                saveCurrentPosition()
+                            }
                         }
                         delay(1000)
                     }
@@ -114,14 +138,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         )
 
         loadPlaybackQueue()
+        
+        // Load saved positions from Firestore on startup
+        viewModelScope.launch {
+            playbackPositionRepository.loadFromFirestore()
+        }
     }
 
     fun play(mediaId: String) {
         viewModelScope.launch {
+            // Save position of current book before switching
+            saveCurrentPosition()
+
             bookRepository.getBook(mediaId)
                 .onSuccess { book ->
                     if (book != null) {
                         _currentBook.value = book
+                        // Sync with PlaybackStateManager for MiniPlayer
+                        PlaybackStateManager.updateCurrentBook(book)
                         if (book.audioUrl.isBlank()) {
                             Log.e(TAG, "Book ${book.id} does not contain an audioUrl.")
                             _uiState.update { it.copy(isPlaying = false) }
@@ -136,6 +170,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             null
                         }
                         if (playbackUrl != null) {
+                            // Get saved position for this book
+                            val savedPosition = playbackPositionRepository.getPositionMs(book.id)
+                            
                             val mediaItem = MediaItem.Builder()
                                 .setMediaId(book.id)
                                 .setUri(playbackUrl)
@@ -148,6 +185,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                 .build()
                             mediaController?.setMediaItem(mediaItem)
                             mediaController?.prepare()
+                            
+                            // Seek to saved position if available
+                            if (savedPosition > 0) {
+                                mediaController?.seekTo(savedPosition)
+                                Log.d(TAG, "Resuming ${book.id} from ${savedPosition}ms")
+                            }
+                            
                             mediaController?.play()
                         }
                     } else {
@@ -164,6 +208,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun onPlayPause() {
         if (mediaController?.isPlaying == true) {
             mediaController?.pause()
+            // Save position when pausing
+            viewModelScope.launch { saveCurrentPosition() }
         } else {
             mediaController?.play()
         }
@@ -171,6 +217,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onSeek(position: Long) {
         mediaController?.seekTo(position)
+        // Save position after seeking
+        viewModelScope.launch { saveCurrentPosition() }
     }
 
     fun onRewind() {
@@ -179,6 +227,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onFastForward() {
         mediaController?.seekForward()
+    }
+
+    private suspend fun saveCurrentPosition() {
+        val bookId = _currentBook.value?.id ?: return
+        val position = mediaController?.currentPosition ?: return
+        val duration = mediaController?.duration ?: return
+        if (position > 0 && duration > 0) {
+            playbackPositionRepository.savePosition(bookId, position, duration)
+        }
     }
 
     fun onSkipPrevious() {
@@ -268,6 +325,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun cyclePlaybackSpeed() {
+        val controller = mediaController ?: return
+        val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
+        val currentSpeed = _uiState.value.playbackSpeed
+        val currentIndex = speeds.indexOfFirst { kotlin.math.abs(it - currentSpeed) < 0.01f }
+        val nextIndex = if (currentIndex == -1 || currentIndex == speeds.lastIndex) 0 else currentIndex + 1
+        val newSpeed = speeds[nextIndex]
+        controller.setPlaybackSpeed(newSpeed)
+        _uiState.update { it.copy(playbackSpeed = newSpeed) }
+    }
+
     fun addCurrentBookToPlaylist(playlistId: String) {
         val bookId = _currentBook.value?.id ?: return
         playlistRepository.addBookToPlaylist(playlistId, bookId)
@@ -279,6 +347,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     override fun onCleared() {
+        // Save position before clearing
+        val bookId = _currentBook.value?.id
+        val position = mediaController?.currentPosition
+        val duration = mediaController?.duration
+        if (bookId != null && position != null && duration != null && position > 0 && duration > 0) {
+            // Use runBlocking since we're in onCleared and need to complete before destruction
+            kotlinx.coroutines.runBlocking {
+                playbackPositionRepository.savePosition(bookId, position, duration)
+            }
+        }
+        
         sleepTimerJob?.cancel()
         MediaController.releaseFuture(controllerFuture)
         super.onCleared()

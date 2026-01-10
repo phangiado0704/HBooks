@@ -38,7 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.hbooks.data.models.Book
 import com.example.hbooks.data.models.Playlist
 import com.example.hbooks.ui.components.BookItem
@@ -47,14 +47,15 @@ import com.example.hbooks.ui.components.LoadingState
 import com.example.hbooks.ui.components.SectionTitle
 import com.example.hbooks.ui.viewmodels.LibraryViewModel
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(onBackClick: () -> Unit, onBookClick: (String) -> Unit) {
-    val viewModel: LibraryViewModel = viewModel()
+    val viewModel: LibraryViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val recentlyPlayedIds by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
@@ -71,7 +72,7 @@ fun LibraryScreen(onBackClick: () -> Unit, onBookClick: (String) -> Unit) {
                 title = { Text("Library", color = Color.Red, style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)

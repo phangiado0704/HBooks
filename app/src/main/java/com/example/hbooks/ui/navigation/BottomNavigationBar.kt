@@ -1,8 +1,8 @@
 package com.example.hbooks.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -11,7 +11,6 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 @Composable
@@ -23,7 +22,7 @@ fun BottomNavigationBar(navController: NavController) {
         val items = listOf(
             "home" to Icons.Filled.Home,
             "search" to Icons.Filled.Search,
-            "library" to Icons.Filled.MenuBook,
+            "library" to Icons.AutoMirrored.Filled.MenuBook,
             "profile" to Icons.Filled.Person
         )
 

@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hbooks.data.models.Book
 import com.example.hbooks.data.repository.BookRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class SearchUiState(
     val query: String = "",
@@ -17,8 +19,9 @@ data class SearchUiState(
     val errorMessage: String? = null
 )
 
-class SearchViewModel(
-    private val bookRepository: BookRepository = BookRepository()
+@HiltViewModel
+class SearchViewModel @Inject constructor(
+    private val bookRepository: BookRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchUiState(isLoading = true))

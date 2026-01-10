@@ -26,8 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.hbooks.data.models.Book
+import com.example.hbooks.data.repository.PlaybackPosition
 import com.example.hbooks.ui.components.BookItem
 import com.example.hbooks.ui.components.ErrorState
 import com.example.hbooks.ui.components.LoadingState
@@ -36,8 +37,9 @@ import com.example.hbooks.ui.viewmodels.HomeViewModel
 
 @Composable
 fun HomeScreen(onBookClick: (String) -> Unit, modifier: Modifier = Modifier) {
-    val viewModel: HomeViewModel = viewModel()
+    val viewModel: HomeViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val playbackPositions by viewModel.playbackPositions.collectAsStateWithLifecycle()
 
     LazyColumn(modifier = modifier) {
         item {
@@ -75,7 +77,11 @@ fun HomeScreen(onBookClick: (String) -> Unit, modifier: Modifier = Modifier) {
             } else {
                 item {
                     SectionTitle(title = "New Releases Book")
-                    NewReleasesSection(books = displayedBooks, onBookClick = onBookClick)
+                    NewReleasesSection(
+                        books = displayedBooks,
+                        onBookClick = onBookClick,
+                        playbackPositions = playbackPositions
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 item {
@@ -85,6 +91,7 @@ fun HomeScreen(onBookClick: (String) -> Unit, modifier: Modifier = Modifier) {
                     FeaturedBooksSection(
                         books = displayedBooks,
                         onBookClick = onBookClick,
+                        playbackPositions = playbackPositions,
                         modifier = Modifier.height(400.dp)
                     )
                 }
@@ -94,7 +101,11 @@ fun HomeScreen(onBookClick: (String) -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun NewReleasesSection(books: List<Book>, onBookClick: (String) -> Unit) {
+fun NewReleasesSection(
+    books: List<Book>,
+    onBookClick: (String) -> Unit,
+    playbackPositions: Map<String, PlaybackPosition> = emptyMap()
+) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
@@ -103,7 +114,8 @@ fun NewReleasesSection(books: List<Book>, onBookClick: (String) -> Unit) {
                 book = book,
                 onBookClick = onBookClick,
                 modifier = Modifier.width(120.dp),
-                cardElevation = 4.dp
+                cardElevation = 4.dp,
+                savedPositionMs = playbackPositions[book.id]?.positionMs ?: 0
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -157,7 +169,12 @@ fun CategoryChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun FeaturedBooksSection(books: List<Book>, onBookClick: (String) -> Unit, modifier: Modifier = Modifier) {
+fun FeaturedBooksSection(
+    books: List<Book>,
+    onBookClick: (String) -> Unit,
+    playbackPositions: Map<String, PlaybackPosition> = emptyMap(),
+    modifier: Modifier = Modifier
+) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         contentPadding = PaddingValues(16.dp),
@@ -166,7 +183,12 @@ fun FeaturedBooksSection(books: List<Book>, onBookClick: (String) -> Unit, modif
         modifier = modifier
     ) {
         items(books.reversed()) { book ->
-            BookItem(book = book, onBookClick = onBookClick, cardElevation = 4.dp)
+            BookItem(
+                book = book,
+                onBookClick = onBookClick,
+                cardElevation = 4.dp,
+                savedPositionMs = playbackPositions[book.id]?.positionMs ?: 0
+            )
         }
     }
 }

@@ -23,10 +23,11 @@ import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.outlined.ModeNight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -59,7 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
@@ -80,7 +81,7 @@ private val headerGradient = Brush.verticalGradient(
 
 @Composable
 fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
-    val viewModel: PlayerViewModel = viewModel()
+    val viewModel: PlayerViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val book by viewModel.currentBook.collectAsStateWithLifecycle()
     val player by viewModel.player.collectAsStateWithLifecycle()
@@ -146,9 +147,11 @@ fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
                     repeatMode = uiState.repeatMode,
                     isShuffleEnabled = uiState.isShuffleEnabled,
                     isBookSaved = isBookSaved,
+                    playbackSpeed = uiState.playbackSpeed,
                     onSleepTimerClick = { showSleepDialog = true },
                     onRepeatToggle = viewModel::cycleRepeatAndShuffleMode,
-                    onSaveClick = { showSaveDialog = true }
+                    onSaveClick = { showSaveDialog = true },
+                    onSpeedClick = viewModel::cyclePlaybackSpeed
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -342,47 +345,68 @@ private fun SecondaryControls(
     repeatMode: Int,
     isShuffleEnabled: Boolean,
     isBookSaved: Boolean,
+    playbackSpeed: Float,
     onSleepTimerClick: () -> Unit,
     onRepeatToggle: () -> Unit,
-    onSaveClick: () -> Unit
+    onSaveClick: () -> Unit,
+    onSpeedClick: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        val sleepDescription = sleepTimerRemainingMs?.let { "Ends in ${formatTime(it)}" } ?: "Off"
-        SecondaryControlItem(
-            icon = Icons.Outlined.ModeNight,
-            label = "Sleep Timer",
-            description = sleepDescription,
-            active = sleepTimerRemainingMs != null,
-            onClick = onSleepTimerClick
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            val sleepDescription = sleepTimerRemainingMs?.let { "Ends in ${formatTime(it)}" } ?: "Off"
+            SecondaryControlItem(
+                icon = Icons.Outlined.ModeNight,
+                label = "Sleep Timer",
+                description = sleepDescription,
+                active = sleepTimerRemainingMs != null,
+                onClick = onSleepTimerClick
+            )
 
-        val repeatDescription = when {
-            isShuffleEnabled -> "Shuffle"
-            repeatMode == Player.REPEAT_MODE_ONE -> "Repeat 1"
-            repeatMode == Player.REPEAT_MODE_ALL -> "Repeat all"
-            else -> "Off"
+            val repeatDescription = when {
+                isShuffleEnabled -> "Shuffle"
+                repeatMode == Player.REPEAT_MODE_ONE -> "Repeat 1"
+                repeatMode == Player.REPEAT_MODE_ALL -> "Repeat all"
+                else -> "Off"
+            }
+            SecondaryControlItem(
+                icon = Icons.Default.Repeat,
+                label = "Repeat / Shuffle",
+                description = repeatDescription,
+                active = repeatMode != Player.REPEAT_MODE_OFF || isShuffleEnabled,
+                onClick = onRepeatToggle
+            )
+
+            val saveDescription = if (isBookSaved) "In playlist" else "Add to playlist"
+            SecondaryControlItem(
+                icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                label = "Save",
+                description = saveDescription,
+                active = isBookSaved,
+                onClick = onSaveClick
+            )
         }
-        SecondaryControlItem(
-            icon = Icons.Default.Repeat,
-            label = "Repeat / Shuffle",
-            description = repeatDescription,
-            active = repeatMode != Player.REPEAT_MODE_OFF || isShuffleEnabled,
-            onClick = onRepeatToggle
-        )
 
-        val saveDescription = if (isBookSaved) "In playlist" else "Add to playlist"
-        SecondaryControlItem(
-            icon = Icons.Default.PlaylistAdd,
-            label = "Save",
-            description = saveDescription,
-            active = isBookSaved,
-            onClick = onSaveClick
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            val speedDescription = if (playbackSpeed == 1.0f) "Normal" else "${playbackSpeed}x"
+            SecondaryControlItem(
+                icon = Icons.Default.Speed,
+                label = "Speed",
+                description = speedDescription,
+                active = playbackSpeed != 1.0f,
+                onClick = onSpeedClick
+            )
+        }
     }
 }
 
