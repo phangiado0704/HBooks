@@ -11,7 +11,9 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.hbooks.data.models.Book
+import com.example.hbooks.data.models.Bookmark
 import com.example.hbooks.data.models.Playlist
+import com.example.hbooks.data.repository.BookmarkRepository
 import com.example.hbooks.data.repository.BookRepository
 import com.example.hbooks.data.repository.PlaybackPositionRepository
 import com.example.hbooks.data.repository.PlaylistRepository
@@ -53,6 +55,7 @@ class PlayerViewModel @Inject constructor(
     private val playlistRepository = PlaylistRepository
     private val recentlyPlayedRepository = RecentlyPlayedRepository
     private val playbackPositionRepository = PlaybackPositionRepository
+    private val bookmarkRepository = BookmarkRepository
 
     private val _player = MutableStateFlow<Player?>(null)
     val player = _player.asStateFlow()
@@ -64,6 +67,9 @@ class PlayerViewModel @Inject constructor(
     private val _currentBook = MutableStateFlow<Book?>(null)
     val currentBook = _currentBook.asStateFlow()
     private val playbackQueue = MutableStateFlow<List<Book>>(emptyList())
+
+    // Bookmarks for the current book
+    val bookmarks: StateFlow<List<Bookmark>> = bookmarkRepository.currentBookBookmarks
 
     private var mediaController: MediaController? = null
     private val controllerFuture: ListenableFuture<MediaController>
@@ -193,6 +199,9 @@ class PlayerViewModel @Inject constructor(
                             }
                             
                             mediaController?.play()
+                            
+                            // Load bookmarks for this book
+                            bookmarkRepository.setCurrentBook(book.id)
                         }
                     } else {
                         Log.e(TAG, "Book with id $mediaId not found.")
@@ -407,5 +416,24 @@ class PlayerViewModel @Inject constructor(
             if (currentIndex == 0) queue.lastIndex else currentIndex - 1
         }
         return queue.getOrNull(nextIndex)
+    }
+
+    // Bookmark functions
+    fun addBookmark(label: String = "") {
+        val bookId = _currentBook.value?.id ?: return
+        val position = mediaController?.currentPosition ?: return
+        viewModelScope.launch {
+            bookmarkRepository.addBookmark(bookId, position, label)
+        }
+    }
+
+    fun deleteBookmark(bookmark: Bookmark) {
+        viewModelScope.launch {
+            bookmarkRepository.deleteBookmark(bookmark)
+        }
+    }
+
+    fun seekToBookmark(bookmark: Bookmark) {
+        mediaController?.seekTo(bookmark.positionMs)
     }
 }

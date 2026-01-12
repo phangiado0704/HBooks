@@ -18,6 +18,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.MoreVert
@@ -66,6 +69,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.example.hbooks.data.models.Book
+import com.example.hbooks.data.models.Bookmark
 import com.example.hbooks.data.models.Playlist
 import com.example.hbooks.ui.viewmodels.PlayerUiState
 import com.example.hbooks.ui.viewmodels.PlayerViewModel
@@ -86,9 +90,11 @@ fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
     val book by viewModel.currentBook.collectAsStateWithLifecycle()
     val player by viewModel.player.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val bookmarks by viewModel.bookmarks.collectAsStateWithLifecycle()
 
     var showSleepDialog by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
+    var showBookmarkDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(bookId) {
         if (bookId != null) {
@@ -148,10 +154,12 @@ fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
                     isShuffleEnabled = uiState.isShuffleEnabled,
                     isBookSaved = isBookSaved,
                     playbackSpeed = uiState.playbackSpeed,
+                    bookmarkCount = bookmarks.size,
                     onSleepTimerClick = { showSleepDialog = true },
                     onRepeatToggle = viewModel::cycleRepeatAndShuffleMode,
                     onSaveClick = { showSaveDialog = true },
-                    onSpeedClick = viewModel::cyclePlaybackSpeed
+                    onSpeedClick = viewModel::cyclePlaybackSpeed,
+                    onBookmarkClick = { showBookmarkDialog = true }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -191,6 +199,24 @@ fun PlayerScreen(bookId: String?, onBackClick: () -> Unit) {
                 showSaveDialog = false
             },
             onDismiss = { showSaveDialog = false }
+        )
+    }
+
+    if (showBookmarkDialog && currentBook != null) {
+        BookmarkDialog(
+            bookmarks = bookmarks,
+            currentPosition = uiState.currentPosition,
+            onAddBookmark = { label ->
+                viewModel.addBookmark(label)
+            },
+            onSeekToBookmark = { bookmark ->
+                viewModel.seekToBookmark(bookmark)
+                showBookmarkDialog = false
+            },
+            onDeleteBookmark = { bookmark ->
+                viewModel.deleteBookmark(bookmark)
+            },
+            onDismiss = { showBookmarkDialog = false }
         )
     }
 }
@@ -346,10 +372,12 @@ private fun SecondaryControls(
     isShuffleEnabled: Boolean,
     isBookSaved: Boolean,
     playbackSpeed: Float,
+    bookmarkCount: Int,
     onSleepTimerClick: () -> Unit,
     onRepeatToggle: () -> Unit,
     onSaveClick: () -> Unit,
-    onSpeedClick: () -> Unit
+    onSpeedClick: () -> Unit,
+    onBookmarkClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -396,7 +424,7 @@ private fun SecondaryControls(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             val speedDescription = if (playbackSpeed == 1.0f) "Normal" else "${playbackSpeed}x"
             SecondaryControlItem(
@@ -405,6 +433,15 @@ private fun SecondaryControls(
                 description = speedDescription,
                 active = playbackSpeed != 1.0f,
                 onClick = onSpeedClick
+            )
+
+            val bookmarkDescription = if (bookmarkCount > 0) "$bookmarkCount saved" else "None"
+            SecondaryControlItem(
+                icon = Icons.Default.Bookmark,
+                label = "Bookmarks",
+                description = bookmarkDescription,
+                active = bookmarkCount > 0,
+                onClick = onBookmarkClick
             )
         }
     }
@@ -539,4 +576,143 @@ private fun formatTime(timeMs: Long): String {
     val minutes = TimeUnit.MILLISECONDS.toMinutes(safeTime)
     val seconds = TimeUnit.MILLISECONDS.toSeconds(safeTime) - TimeUnit.MINUTES.toSeconds(minutes)
     return String.format("%02d:%02d", minutes, seconds)
+}
+
+@Composable
+private fun BookmarkDialog(
+    bookmarks: List<Bookmark>,
+    currentPosition: Long,
+    onAddBookmark: (String) -> Unit,
+    onSeekToBookmark: (Bookmark) -> Unit,
+    onDeleteBookmark: (Bookmark) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var bookmarkLabel by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Bookmarks") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Add new bookmark section
+                Text(
+                    text = "Add bookmark at ${formatTime(currentPosition)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = bookmarkLabel,
+                        onValueChange = { bookmarkLabel = it },
+                        label = { Text("Label (optional)") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    IconButton(
+                        onClick = {
+                            onAddBookmark(bookmarkLabel)
+                            bookmarkLabel = ""
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.BookmarkAdd,
+                            contentDescription = "Add bookmark",
+                            tint = accentColor
+                        )
+                    }
+                }
+
+                if (bookmarks.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Saved bookmarks",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        bookmarks.forEach { bookmark ->
+                            BookmarkItem(
+                                bookmark = bookmark,
+                                onSeek = { onSeekToBookmark(bookmark) },
+                                onDelete = { onDeleteBookmark(bookmark) }
+                            )
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No bookmarks yet. Add one to save your place!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = secondaryTextColor
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    )
+}
+
+@Composable
+private fun BookmarkItem(
+    bookmark: Bookmark,
+    onSeek: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
+                Text(
+                    text = bookmark.label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = formatTime(bookmark.positionMs),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = accentColor
+                )
+            }
+            Row {
+                TextButton(onClick = onSeek) {
+                    Text("Go to", color = accentColor)
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = secondaryTextColor
+                    )
+                }
+            }
+        }
+    }
 }
