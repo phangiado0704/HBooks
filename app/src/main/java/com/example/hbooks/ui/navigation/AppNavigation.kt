@@ -13,10 +13,15 @@ import com.example.hbooks.ui.screens.PlayerScreen
 import com.example.hbooks.ui.screens.ProfileScreen
 import com.example.hbooks.ui.screens.RegisterScreen
 import com.example.hbooks.ui.screens.SearchScreen
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun AppNavigation(navController: NavHostController, modifier: Modifier = Modifier) {
-    NavHost(navController = navController, startDestination = "login", modifier = modifier) {
+    // Check if user is already logged in
+    val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
+    val startDestination = if (isLoggedIn) "home" else "login"
+    
+    NavHost(navController = navController, startDestination = startDestination, modifier = modifier) {
         composable("login") {
             LoginScreen(
                 onSignIn = {
