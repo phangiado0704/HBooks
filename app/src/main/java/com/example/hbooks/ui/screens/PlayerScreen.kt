@@ -272,7 +272,6 @@ private fun PlayerArtwork(book: Book, player: Player?, modifier: Modifier = Modi
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(UnstableApi::class)
 @Composable
 private fun VideoSurface(player: Player, modifier: Modifier = Modifier) {
     AndroidView(

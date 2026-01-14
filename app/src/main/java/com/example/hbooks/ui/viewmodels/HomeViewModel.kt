@@ -1,6 +1,5 @@
 package com.example.hbooks.ui.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hbooks.data.models.Book
@@ -38,8 +37,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val previousSelection = _uiState.value.selectedCategory
             bookRepository.getBooks()
-                .onSuccess { rawBooks ->
-                    val books = ensureCategoriesPresent(rawBooks)
+                .onSuccess { books ->
                     val categories = extractCategories(books)
                     val activeSelection = previousSelection?.takeIf { selection ->
                         categories.any { it.equals(selection, ignoreCase = true) }
@@ -80,23 +78,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun ensureCategoriesPresent(books: List<Book>): List<Book> {
-        if (books.none { it.categories.isEmpty() }) return books
-
-        val updateResult = bookRepository.updateBookCategories()
-        if (updateResult.isFailure) {
-            Log.e(TAG, "Unable to update missing categories", updateResult.exceptionOrNull())
-            return books
-        }
-
-        val refreshedResult = bookRepository.getBooks()
-        if (refreshedResult.isFailure) {
-            Log.e(TAG, "Unable to reload books after category update", refreshedResult.exceptionOrNull())
-            return books
-        }
-        return refreshedResult.getOrThrow()
-    }
-
     private fun filterBooks(books: List<Book>, category: String?): List<Book> {
         if (category.isNullOrBlank()) return books
         return books.filter { book ->
@@ -111,9 +92,5 @@ class HomeViewModel @Inject constructor(
             .filter { it.isNotEmpty() }
             .distinctBy { it.lowercase() }
             .sortedBy { it.lowercase() }
-    }
-
-    companion object {
-        private const val TAG = "HomeViewModel"
     }
 }
